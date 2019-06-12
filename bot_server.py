@@ -5,12 +5,11 @@ import json
 from flask import Flask
 from flask import request
 from webexteamssdk import WebexTeamsAPI, Webhook
+from base64 import b64encode
 
 
 api = WebexTeamsAPI()
-f = open('./access.tkn', 'r')
-bot_token = f.read()
-f.close()
+
 
 # Find all rooms that have 'webexteamssdk Demo' in their title
 all_rooms = api.rooms.list()
@@ -43,23 +42,33 @@ def getIP(message):
 
 @app.route('/', methods=['POST'])
 def messageHandling():
-    #CHANGE THESE FOR YOUR SETUP
-    APIC_ADDR = ""
-    APIC_USER = ""
-    APIC_PASS = ""
+    f = open('./apic.creds', 'r')
+    creds = f.read()
+    f.close()
+    creds = creds.split("\n")
+    APIC_ADDR = creds[0]
+    APIC_USER = creds[1]
+    APIC_PASS = creds[2]
 
+    f = open('./access.tkn', 'r')
+    bot_token = f.read()
+    f.close()
 
+    f = open('./AWX.pass', 'r')
+    contents = f.read()
+    contents = contents.split('\n')
+    awx_token = contents[0]
+    awx_IP = contents[1]
+    f.close()
+
+    print(awx_token)
     json_data = request.data
     # Create a Webhook object from the JSON data
     webhook_obj = Webhook(json_data)
     # Get the room details
     room = api.rooms.get(webhook_obj.data.roomId)
     # Get the message details ATM messages.get is bad, and i think it has delay while getting group chat messages
-    try:
-        message = api.messages.get(webhook_obj.data.id)
-    except:
-        print("Message couldnt be read!")
-        exit()
+    message = api.messages.get(webhook_obj.data.id)
     # Get the sender's details
     person = api.people.get(message.personId)
     me = api.people.me()
@@ -71,7 +80,7 @@ def messageHandling():
     if message.personId == me.id:
         return 'OK'
     else:
-        if("IP" in message.text):
+        if("find" in message.text):
             return_msg = getIP(message.text)
             if(return_msg != "not_valid"):
                 DATA = {
@@ -84,8 +93,8 @@ def messageHandling():
                         'apic_password': APIC_PASS
                     }
                 }
-                URL = 'http://slightawx.uktme.cisco.com/api/v2/job_templates/15/launch/'
-                HEADERS = {'Content-Type': 'application/json', 'Authorization': 'Basic YWRtaW46cGFzc3dvcmQ='}
+                URL = 'http://' + str(awx_IP) + '/api/v2/job_templates/15/launch/'
+                HEADERS = {'Content-Type': 'application/json', 'Authorization': 'Basic ' + str(awx_token)}
                 api.messages.create(room.id, text=str("Finding " + return_msg + " in fabric"))
                 r = requests.post(URL, data = json.dumps(DATA), headers = HEADERS)
             else:
@@ -99,18 +108,18 @@ def messageHandling():
                         'bot_token': bot_token
                     }
             }
-            URL = 'http://slightawx.uktme.cisco.com/api/v2/job_templates/17/launch/'
-            HEADERS = {'Content-Type': 'application/json', 'Authorization': 'Basic YWRtaW46cGFzc3dvcmQ='}
+            URL = 'http://' + str(awx_IP) + '/api/v2/job_templates/17/launch/'
+            HEADERS = {'Content-Type': 'application/json', 'Authorization': 'Basic ' + str(awx_token)}
             r = requests.post(URL, data = json.dumps(DATA), headers = HEADERS)
-        elif("Contract" in message.text):
+        elif("create contract" in message.text):
             api.messages.create(room.id, text=str("Creating contract now...."))
             message_arr = message.text.split(" ")
             DATA = {
                 'extra_vars': {
-                    "src_ip_addr":   message_arr[2],
-                    "dst_ip_addr":   message_arr[3],
-                    "subj_name":     message_arr[4],
-                    "dst_port":      message_arr[5],
+                    "src_ip_addr":   message_arr[3],
+                    "dst_ip_addr":   message_arr[4],
+                    "subj_name":     message_arr[5],
+                    "dst_port":      message_arr[6],
                     'apic':          APIC_ADDR,
                     'apic_username': APIC_USER,
                     'apic_password': APIC_PASS,
@@ -118,9 +127,9 @@ def messageHandling():
                     "RoomId":       room.id
                 }
             }
-            URL = 'http://slightawx.uktme.cisco.com/api/v2/job_templates/18/launch/'
-            HEADERS = {'Content-Type': 'application/json', 'Authorization': 'Basic YWRtaW46cGFzc3dvcmQ='}
+            URL = 'http://' + str(awx_IP) + '/api/v2/job_templates/18/launch/'
+            HEADERS = {'Content-Type': 'application/json', 'Authorization': 'Basic ' + str(awx_token)}
             r = requests.post(URL, data = json.dumps(DATA), headers = HEADERS)
+        else:
+            api.messages.create(room.id, text=str("Bot Help Page:  \n > @bot_name find IP_ADDRESS  \n Finds the IP Address within the ACI fabric, if not there will return not found. If its found will return information about it.  \n > @bot_name Cohesity  \n Checks Cohesity for jobs run and provides information about pass/fail as well as providing links to them  \n > @bot_name create contract SRC_IP DEST_IP SUBJ_NAME DST_PORT  \n Creats a contract in ACI with using the parameters provided"))
     return 'OK'
-
-

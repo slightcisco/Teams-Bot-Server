@@ -2,7 +2,9 @@ import subprocess
 import json
 import os
 import requests
+import base64
 from time import sleep
+from requests.auth import HTTPBasicAuth
 
 def bashCommand(command):
     process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
@@ -22,7 +24,7 @@ if "Flask" not in pip_list:
 if "webexteamssdk" not in pip_list:
     print("Webex Teams SDK is not installed, would you like to install now? ")
     inp = str(raw_input("[Y/N]"))
-    if inp == "y" or inp == "Y":
+    if inp == "n" or inp == "N":
         print("Quitting due to requirements failure")
         quit()
     else:
@@ -45,6 +47,7 @@ json_arg = json.loads(json_arg)
 print(len(json_arg['tunnels']))
 NGROK_url = json_arg['tunnels'][0]['public_url']
 print(NGROK_url)
+
 try:
     f = open('./access.tkn', 'r')
     token = f.read()
@@ -56,31 +59,80 @@ except :
     token = ""
     f = open('./access.tkn', 'w')
     print("No token was found")
-print("Navigate to developer.webex.com and create an account/login")
-print("Click your profile in the top right, click 'My Webex Teams Apps' and create a new bot")
-
 while token_empty:
+    print("Navigate to developer.webex.com and create an account/login")
+    print("Click your profile in the top right, click 'My Webex Teams Apps' and create a new bot")
     token = raw_input("Please enter the ACCESS_TOKEN for your bot: ")
     if token == "":
         print("Please enter a token, cannot leave this blank")
     else:
         f.write(token)
         token_empty = False
+try:
+    f = open('./AWX.pass', 'r')
+    awx = f.read()
+    awx_empty = False
+    print("TOKEN FOUND IN awx.pass")
+    f.close()
+except :
+    awx_empty = True
+    awx = ""
+    f = open('./AWX.pass', 'w')
+    print("No token was found")
+while awx_empty:
+    awx_ip = raw_input("Please enter the IP or domain name for your AWX: ")
+    awx_user = raw_input("Please enter the username for your AWX: ")
+    awx_pass = raw_input("Please enter the password for your AWX: ")
+    awx_token = awx_user + ":" + awx_pass
+    awx_token = awx_token.encode("UTF-8")
+    awx_token = base64.b64encode(awx_token)
+
+    print(awx_token)
+    if awx_token == "":
+        print("Please enter a token, cannot leave this blank")
+    else:
+        f.write(awx_token + "\n" + awx_ip)
+        awx_empty = False
+
+try:
+    f = open('./apic.creds', 'r')
+    creds = f.read()
+    creds_empty = False
+    print("APIC CREDENTIALS FOUND IN apic.creds")
+    f.close()
+except :
+    creds_empty = True
+    creds = ""
+    f = open('./apic.creds', 'w')
+    print("No creds were found")
+while creds_empty:
+    apic_ip = raw_input("Please enter the IP address (or domain name) for your APIC: ")
+    apic_user = raw_input("Please enter the username for your APIC: ")
+    apic_pass = raw_input("Please enter the password for your APIC: ")
+    if apic_ip == "" or apic_pass == "" or apic_pass == "":
+        print("Please enter a creds, cannot leave this blank")
+    else:
+        return_str = str(apic_ip + "\n" + apic_user + "\n" + apic_pass)
+        f.write(return_str)
+        creds_empty = False
 
 URL = "https://api.ciscospark.com/v1/webhooks"
 
+print( "TEAMS TOKEN: " + str(token))
 HEADERS = {
-'Authorization':'Bearer ' + str(token)
+'Authorization':'Bearer '+str(token)
 }
 
 DATA = {
-'name':'NGROK created automatically',
-'targetUrl':NGROK_url,
-'resource':'all',
-'event':'all'
+'name': 'NGROK created automatically',
+'targetUrl': NGROK_url,
+'resource': 'all',
+'event': 'all'
 }
 webhook_list = requests.get(url = "https://api.ciscospark.com/v1/webhooks", headers = HEADERS)
 webhook_list = json.loads(webhook_list.text)
+print("_____WEBHOOK LIST BELOW:_____")
+print(webhook_list)
 webhook_items = webhook_list['items']
 for i in range(len(webhook_items)):
     if webhook_items[i]['name'] == "NGROK created automatically":

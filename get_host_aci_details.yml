@@ -107,6 +107,7 @@
       method:         get
       path:           /api/node/class/fvCEp.json?query-target-filter=and(eq(fvCEp.ip,"{{ host_ip_addr }}"))
     register:         host_epg
+
   # Debug:            Value of host_epg
   - debug:
       msg: "host_epg: {{ host_epg }}"
@@ -294,7 +295,9 @@
 
   - name:             Create new List including Headers
     set_fact:
-      prov_subj_flt_summary_list_with_headers_list:  "{{ prov_subj_flt_summary_list_with_headers_result.results | map(attribute='ansible_facts.prov_subj_flt_summary_list_with_headers') | list }}"
+      prov_subj_flt_summary_list_with_headers_list:  "{{ prov_subj_flt_summary_list_with_headers_result.results | map(attribute='ansible_facts.prov_subj_flt_summary_list_with_headers') |list }}"
+
+
   - debug:
       var:            prov_subj_flt_summary_list_with_headers_list
     when:             debug_on_state != False
@@ -376,7 +379,11 @@
       msg:            'IP address(s) associated with EPG [{{ host_epg_name}}]: {{ host_epg_ip_addresses | json_query("imdata[*].fvIp.attributes.addr") }}'
     when:             debug_on_state != False
 
-
+  - name: formatting json
+    set_fact:
+      prov_subj_flt_summary_list_with_headers_list: "{{prov_subj_flt_summary_list_with_headers_list | to_nice_json }}"
+      cons_subj_flt_summary_list_with_headers_list: "{{cons_subj_flt_summary_list_with_headers_list | to_nice_json }}"
+      ip_addresses_list:                            "{{ip_addresses_list | to_nice_json }}"
   #
   # PRINT SUMMARY INFORMATION TO END USER
   #
@@ -399,54 +406,54 @@
     cisco_spark:
       recipient_type: roomId
       recipient_id: "{{RoomId}}"
-      message_type: text
+      message_type: markdown
       personal_token: "{{bot_token}}"
-      message: "Host IP: {{host_ip_addr}}"
+      message: "## Host IP  \n {{host_ip_addr}}"
 
   - name: message - ACI Tenant Name
     cisco_spark:
       recipient_type: roomId
       recipient_id: "{{RoomId}}"
-      message_type: text
+      message_type: markdown
       personal_token: "{{bot_token}}"
-      message: "Tenant Name: {{host_tn_name}}"
+      message: "### Tenant Name  \n {{host_tn_name}}"
 
   - name: message - ACI Application Profile Name
     cisco_spark:
       recipient_type: roomId
       recipient_id: "{{RoomId}}"
-      message_type: text
+      message_type: markdown
       personal_token: "{{bot_token}}"
-      message: "Application Profile Name: {{host_ap_name}}"
+      message: "### Application Profile Name  \n {{host_ap_name}}"
 
   - name: message - EPG to which Host Belongs
     cisco_spark:
       recipient_type: roomId
       recipient_id: "{{RoomId}}"
-      message_type: text
+      message_type: markdown
       personal_token: "{{bot_token}}"
-      message: "EPG that the host belongs to: {{host_epg_name}}"
+      message: "### EPG that the host belongs to  \n {{host_epg_name}}"
 
   - name: message - Provided Subjects and Filters
     cisco_spark:
       recipient_type: roomId
       recipient_id: "{{RoomId}}"
-      message_type: text
+      message_type: markdown
       personal_token: "{{bot_token}}"
-      message: "Provided Subjest and Filters: {{prov_subj_flt_summary_list_with_headers_list}}"
+      message: "### Provided Subjects and Filters  \n {{prov_subj_flt_summary_list_with_headers_list}}"
 
   - name: message - Consumed Subjects and Filters
     cisco_spark:
       recipient_type: roomId
       recipient_id: "{{RoomId}}"
-      message_type: text
+      message_type: markdown
       personal_token: "{{bot_token}}"
-      message: "Consumed Subjests and Filters: {{cons_subj_flt_summary_list_with_headers_list}}"
+      message: "### Consumed Subjects and Filters  \n {{cons_subj_flt_summary_list_with_headers_list}}"
 
   - name: message - IP Addresses Associated with host EPG
     cisco_spark:
       recipient_type: roomId
       recipient_id: "{{RoomId}}"
-      message_type: text
+      message_type: markdown
       personal_token: "{{bot_token}}"
-      message: "IP Addresses Assoiciated with EPG: {{ip_addresses_list}}"
+      message: "### IP Addresses Associated with EPG  \n {{ip_addresses_list}}"
