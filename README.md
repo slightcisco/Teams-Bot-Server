@@ -19,4 +19,4 @@
 
 ## Usage
 
-    ![Bot Gif](https://github.com/slightcisco/Python_ACI_Bot_Teams/blob/master/Ansiblebotvid.gif)
+    ![Bot Gif](https://github.com/slightcisco/Teams-Bot-Server/blob/master/Ansiblebotvid.gif)
